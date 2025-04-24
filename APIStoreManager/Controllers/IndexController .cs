@@ -49,7 +49,6 @@ namespace APIStoreManager.Controllers
                 return Ok(detail);
             }
 
-            // Trường hợp danh sách sản phẩm mix từ tất cả shop
             var query = _db.Products
                 .Include(p => p.Shop)
                 .AsQueryable();
@@ -97,7 +96,6 @@ namespace APIStoreManager.Controllers
         {
             if (productId.HasValue)
             {
-                // Trả chi tiết sản phẩm và shop
                 var product = await _db.Products
                     .Include(p => p.Shop)
                     .FirstOrDefaultAsync(p => p.Id == productId.Value);
@@ -122,7 +120,6 @@ namespace APIStoreManager.Controllers
 
             if (shopId.HasValue)
             {
-                // Trả chi tiết shop và các sản phẩm trong đó
                 var shop = await _db.Shops
                     .Include(s => s.Products)
                     .FirstOrDefaultAsync(s => s.Id == shopId.Value);
@@ -145,7 +142,6 @@ namespace APIStoreManager.Controllers
                 });
             }
 
-            // Trường hợp không có gì: trả danh sách tất cả các shop (có phân trang + tìm tên)
             var query = _db.Shops.AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(keyword))
