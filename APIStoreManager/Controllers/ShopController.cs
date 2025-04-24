@@ -17,7 +17,7 @@ namespace APIStoreManager.Controllers
         
         [HttpPost("CreateShop")]
         [Authorize]
-        public async Task<IActionResult> CreateShop([FromBody] CreateShopDto dto)
+        public async Task<IActionResult> CreateShop([FromBody] ShopDto dto)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var shop = new Shop
@@ -38,64 +38,37 @@ namespace APIStoreManager.Controllers
             var myShops = await _db.Shops.Where(s => s.OwnerId == userId).ToListAsync();
             return Ok(myShops);
         }
-        [HttpPost("{shopId}/CreateProduct")]
+
+
+        [HttpPut("{shopId}/updateshop")]
         [Authorize]
-        public async Task<IActionResult> CreateProduct(int shopId, [FromBody] CreateProductDto dto)
+        public async Task<IActionResult> UpdateShop(int shopId, [FromBody] ShopDto updatedShop)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var shop = await _db.Shops.FirstOrDefaultAsync(s => s.Id == shopId && s.OwnerId == userId);
+            if (shop == null) return NotFound("Shop không tồn tại hoặc không thuộc quyền sở hữu!");
 
-            var shop = await _db.Shops.FindAsync(shopId);
-            if (shop == null)
-            {
-                return NotFound("Cửa hàng không tồn tại!");
-            }
-
-            if (shop.OwnerId != userId)
-            {
-                return Forbid();
-            }
-
-            var product = new Product
-            {
-                Name = dto.Name,
-                Price = dto.Price,
-                Description = dto.Description,
-                ShopId = shopId
-            };
-
-            _db.Products.Add(product);
+            shop.Name = updatedShop.Name;
+            shop.Description = updatedShop.Description;
             await _db.SaveChangesAsync();
-            return Ok(product);
+            return Ok(shop);
         }
 
 
-        [HttpGet("{shopId}/products")]
-        public async Task<IActionResult> GetProductsByShop(int shopId)
+        [HttpDelete("{shopId}/deleteshop")]
+        [Authorize]
+        public async Task<IActionResult> DeleteShop(int shopId)
         {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var shop = await _db.Shops
                 .Include(s => s.Products)
-                .FirstOrDefaultAsync(s => s.Id == shopId);
+                .FirstOrDefaultAsync(s => s.Id == shopId && s.OwnerId == userId);
+            if (shop == null) return NotFound("Shop không tồn tại hoặc không thuộc quyền sở hữu!");
 
-            if (shop == null)
-            {
-                return NotFound("Cửa hàng không tồn tại!");
-            }
-
-            var result = new ShopAndProductsDto
-            {
-                ShopId = shop.Id,
-                ShopName = shop.Name,
-                ShopDescription = shop.Description,
-                Products = shop.Products.Select(p => new ProductDto
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Price = p.Price
-                }).ToList()
-            };
-
-            return Ok(result);
+            _db.Products.RemoveRange(shop.Products);
+            _db.Shops.Remove(shop);
+            await _db.SaveChangesAsync();
+            return Ok("Đã xóa shop!");
         }
     }
 }

@@ -8,10 +8,12 @@ namespace APIStoreManager.Models
         public string Name { get; set; }
 
         [Required]
-        [Range(0, double.MaxValue, ErrorMessage = "Giá trị cần trong khoảng cho phép.")]
+        [Range(0, double.MaxValue, ErrorMessage = "Giá trị cần trong khoảng cho phép/" +
+            "" +
+            ".")]
         public decimal Price { get; set; }
 
-        [Required]
+     
         public string Description { get; set; }
 
         [Required]

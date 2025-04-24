@@ -2,7 +2,7 @@
 
 namespace APIStoreManager.Models
 {
-    public class CreateShopDto
+    public class ShopDto
     {
         [Required]
         public string Name { get; set; }

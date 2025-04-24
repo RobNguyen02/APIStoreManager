@@ -58,7 +58,6 @@ namespace APIStoreManager.Controllers
 
             var token = _tokenService.CreateToken(user);
             return Ok(new { token });
-
         }
     }
 }
