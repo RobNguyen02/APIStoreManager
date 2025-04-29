@@ -51,7 +51,11 @@ namespace APIStoreManager.Controllers
             shop.Name = updatedShop.Name;
             shop.Description = updatedShop.Description;
             await _db.SaveChangesAsync();
-            return Ok(shop);
+            return Ok(new
+            {
+                message = "Cập nhật shop thành công!",
+                data = shop
+            });
         }
 
 
@@ -68,7 +72,7 @@ namespace APIStoreManager.Controllers
             _db.Products.RemoveRange(shop.Products);
             _db.Shops.Remove(shop);
             await _db.SaveChangesAsync();
-            return Ok("Đã xóa shop!");
+            return Ok("Đã xóa shop.");
         }
     }
 }
