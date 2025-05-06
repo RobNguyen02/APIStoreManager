@@ -1,11 +1,12 @@
-﻿using APIStoreManager.Model;
-using APIStoreManager.Models;
+﻿using APIStoreManager.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System;
-using ApiStoreManager.Data;
+using APIStoreManager.Data;
 using Microsoft.EntityFrameworkCore;
+using APIStoreManager.DTOs.Products.Responses;
+using Microsoft.Data.SqlClient;
 
 namespace APIStoreManager.Controllers
 {
@@ -14,17 +15,17 @@ namespace APIStoreManager.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly StoreManagerContext _db;
 
-        public ProductController(ApplicationDbContext db)
+        public ProductController(StoreManagerContext db)
         {
             _db = db;
         }
         [HttpGet("MyProductsList/{shopId}")]
         [Authorize]
-        public async Task<IActionResult> GetMyShopProducts(int shopId)
+        public async Task<IActionResult> GetMyShopProducts(long shopId)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
 
             var shop = await _db.Shops
                 .Include(s => s.Products)
@@ -55,31 +56,47 @@ namespace APIStoreManager.Controllers
 
         [HttpPost("{shopId}/CreateProduct")]
         [Authorize]
-        public async Task<IActionResult> CreateProduct(int shopId, [FromBody] ProductDto dto)
+        public async Task<IActionResult> CreateProduct(long shopId, [FromBody] ProductDto dto)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-
-            var shop = await _db.Shops.FindAsync(shopId);
-            if (shop == null) return NotFound("Cửa hàng không tồn tại!");
-            if (shop.OwnerId != userId) return Forbid();
-
-            var product = new Product
+            try
             {
-                Name = dto.Name,
-                Price = dto.Price,
-                Description = dto.Description,
-                ShopId = shopId
-            };
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
 
-            _db.Products.Add(product);
-            await _db.SaveChangesAsync();
-            return Ok(product);
+                var shop = await _db.Shops.FindAsync(shopId);
+                if (shop == null) return NotFound("Cửa hàng không tồn tại!");
+                if (shop.OwnerId != userId) return Forbid();
+
+                var product = new Product
+                {
+                    Name = dto.Name,
+                    Price = dto.Price,
+                    Description = dto.Description,
+                    ShopId = shopId
+                };
+
+                _db.Products.Add(product);
+                await _db.SaveChangesAsync();
+                return Ok(product);
+            }
+            catch (DbUpdateException ex) when (IsDuplicateNameError(ex))
+            {
+                
+                return Conflict(new
+                {
+                    Message = $"Tên sản phẩm '{dto.Name}' đã tồn tại trong hệ thống",
+                    ErrorCode = "PRODUCT_NAME_DUPLICATE"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Lỗi không xác định", Detail = ex.Message });
+            }
         }
 
 
         [HttpPut("{productId}/UpdateProduct")]
         [Authorize]
-        public async Task<IActionResult> UpdateProduct(int productId, [FromBody] ProductDto updatedProduct)
+        public async Task<IActionResult> UpdateProduct(long productId, [FromBody] ProductDto updatedProduct)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var product = await _db.Products
@@ -117,6 +134,13 @@ namespace APIStoreManager.Controllers
             _db.Products.Remove(product);
             await _db.SaveChangesAsync();
             return Ok("Đã xóa sản phẩm.");
+        }
+
+
+        private bool IsDuplicateNameError(DbUpdateException ex)
+        {
+            return ex.InnerException is SqlException sqlEx &&
+                   (sqlEx.Number == 2601 || sqlEx.Number == 2627); 
         }
     }
 }

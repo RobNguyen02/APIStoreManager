@@ -1,10 +1,15 @@
-﻿namespace APIStoreManager.Model
+﻿using System;
+using System.Collections.Generic;
+
+namespace APIStoreManager.Models;
+
+public partial class User
 {
-    public class User
-    {
-        public int Id { get; set; }
-        public string Username { get; set; } = null!;
-        public byte[] PasswordHash { get; set; }
-        public byte[] PasswordSalt { get; set; }
-    }
+    public long Id { get; set; }
+
+    public string Username { get; set; } = null!;
+
+    public string PasswordHash { get; set; } = null!;
+
+    public virtual ICollection<Shop> Shops { get; set; } = new List<Shop>();
 }

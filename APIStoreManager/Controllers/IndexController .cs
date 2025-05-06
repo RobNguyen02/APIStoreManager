@@ -1,4 +1,4 @@
-﻿using ApiStoreManager.Data;
+﻿using APIStoreManager.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,9 +8,9 @@ namespace APIStoreManager.Controllers
     [ApiController]
     public class IndexController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
+        private readonly StoreManagerContext _db;
 
-        public IndexController(ApplicationDbContext db)
+        public IndexController(StoreManagerContext db)
         {
             _db = db;
         }
@@ -56,11 +56,7 @@ namespace APIStoreManager.Controllers
             if (!string.IsNullOrEmpty(keyword))
                 query = query.Where(p => p.Name.Contains(keyword));
 
-            if (minPrice.HasValue)
-                query = query.Where(p => p.Price >= minPrice.Value);
-
-            if (maxPrice.HasValue)
-                query = query.Where(p => p.Price <= maxPrice.Value);
+          
 
             var total = await query.CountAsync();
             var products = await query

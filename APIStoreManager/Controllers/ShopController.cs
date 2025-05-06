@@ -1,4 +1,5 @@
-﻿using ApiStoreManager.Data;
+﻿using APIStoreManager.Data;
+using APIStoreManager.DTOs.Shops.Responses;
 using APIStoreManager.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,13 +8,13 @@ using System.Security.Claims;
 
 namespace APIStoreManager.Controllers
 {
-    
+
     [Route("api/[Controller]")]
     [ApiController]
     public class ShopController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
-        public ShopController(ApplicationDbContext db) => _db = db;
+        private readonly StoreManagerContext _db;
+        public ShopController(StoreManagerContext db) => _db = db;
         
         [HttpPost("CreateShop")]
         [Authorize]

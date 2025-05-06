@@ -1,16 +1,19 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Collections.Generic;
 
-namespace APIStoreManager.Models
+namespace APIStoreManager.Models;
+
+public partial class Product
 {
-    public class Product
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = null!;
-        public decimal Price { get; set; }
-        public string Description { get; set; } = null!;
+    public long Id { get; set; }
 
-        public int ShopId { get; set; }
-        [JsonIgnore]
-        public Shop Shop { get; set; } = null!;
-    }
+    public string Name { get; set; } = null!;
+
+    public double Price { get; set; }
+
+    public string? Description { get; set; }
+
+    public long ShopId { get; set; }
+
+    public virtual Shop Shop { get; set; } = null!;
 }
