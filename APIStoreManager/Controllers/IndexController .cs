@@ -15,155 +15,127 @@ namespace APIStoreManager.Controllers
             _db = db;
         }
 
-        [HttpGet("Index")]
-        public async Task<IActionResult> Index(
-            [FromQuery] int? productId, 
-            [FromQuery] int page = 1, 
-            [FromQuery] int pageSize = 10, 
-            [FromQuery] string? keyword = null, 
-            [FromQuery] decimal? minPrice = null, 
-            [FromQuery] decimal? maxPrice = null)
+        [HttpGet("products")]
+        public async Task<IActionResult> GetProducts(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? keyword = null,
+            [FromQuery] double? minPrice = null,
+            [FromQuery] double? maxPrice = null)
         {
-            if (productId.HasValue)
-            {
-                var product = await _db.Products
-                    .Include(p => p.Shop)
-                    .FirstOrDefaultAsync(p => p.Id == productId.Value);
-
-                if (product == null) return NotFound("Sản phẩm không tồn tại!");
-
-                var detail = new
-                {
-                    Id = product.Id,
-                    Name = product.Name,
-                    Description = product.Description,
-                    Price = product.Price,
-                    Shop = new
-                    {
-                        Id = product.Shop.Id,
-                        Name = product.Shop.Name,
-                        Description = product.Shop.Description
-                    }
-                };
-
-                return Ok(detail);
-            }
-
-            var query = _db.Products
-                .Include(p => p.Shop)
-                .AsQueryable();
+            var query = _db.Products.Include(p => p.Shop).AsQueryable();
 
             if (!string.IsNullOrEmpty(keyword))
                 query = query.Where(p => p.Name.Contains(keyword));
 
-          
+            if (minPrice.HasValue)
+                query = query.Where(p => p.Price >= minPrice.Value);
+
+            if (maxPrice.HasValue)
+                query = query.Where(p => p.Price <= maxPrice.Value);
 
             var total = await query.CountAsync();
+
             var products = await query
-                .OrderBy(p => Guid.NewGuid())
+                .OrderByDescending(p => p.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(p => new
                 {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    Price = p.Price,
-                    ShopName = p.Shop.Name
+                    id = p.Id,
+                    name = p.Name,
+                    price = p.Price,
+                    shopName = p.Shop.Name
                 })
                 .ToListAsync();
 
             return Ok(new
             {
-                Total = total,
-                Page = page,
-                PageSize = pageSize,
-                Products = products
+                total,
+                page,
+                pageSize,
+                products
             });
         }
-        [HttpGet("Index/Shoplist")]
-        public async Task<IActionResult> Index(
-            [FromQuery] int? productId,
-            [FromQuery] int? shopId,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? keyword = null
-)
+
+        [HttpGet("products/{id}")]
+        public async Task<IActionResult> GetProductDetail(int id)
         {
-            if (productId.HasValue)
-            {
-                var product = await _db.Products
-                    .Include(p => p.Shop)
-                    .FirstOrDefaultAsync(p => p.Id == productId.Value);
+            var product = await _db.Products.Include(p => p.Shop)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
-                if (product == null)
-                    return NotFound("Không tìm thấy sản phẩm!");
-
-                return Ok(new
-                {
-                    id = product.Id,
-                    name = product.Name,
-                    description = product.Description,
-                    price = product.Price,
-                    shop = new
-                    {
-                        id = product.Shop.Id,
-                        name = product.Shop.Name,
-                        description = product.Shop.Description
-                    }
-                });
-            }
-
-            if (shopId.HasValue)
-            {
-                var shop = await _db.Shops
-                    .Include(s => s.Products)
-                    .FirstOrDefaultAsync(s => s.Id == shopId.Value);
-
-                if (shop == null)
-                    return NotFound("Không tìm thấy shop!");
-
-                return Ok(new
-                {
-                    shopId = shop.Id,
-                    shopName = shop.Name,
-                    shopDescription = shop.Description,
-                    products = shop.Products.Select(p => new
-                    {
-                        id = p.Id,
-                        name = p.Name,
-                        description = p.Description,
-                        price = p.Price
-                    }).ToList()
-                });
-            }
-
-            var query = _db.Shops.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(keyword))
-            {
-                query = query.Where(s => s.Name.Contains(keyword));
-            }
-
-            var total = await query.CountAsync();
-            var shops = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            if (product == null)
+                return NotFound("Không tìm thấy sản phẩm");
 
             return Ok(new
             {
-                currentPage = page,
-                pageSize,
-                total,
-                shops = shops.Select(s => new
+                id = product.Id,
+                name = product.Name,
+                description = product.Description,
+                price = product.Price,
+                shop = new
+                {
+                    id = product.Shop.Id,
+                    name = product.Shop.Name
+                }
+            });
+        }
+
+        [HttpGet("shops")]
+        public async Task<IActionResult> GetShops(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? keyword = null)
+        {
+            var query = _db.Shops.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                query = query.Where(s => s.Name.Contains(keyword));
+
+            var total = await query.CountAsync();
+
+            var shops = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(s => new
                 {
                     id = s.Id,
                     name = s.Name,
                     description = s.Description
                 })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                total,
+                page,
+                pageSize,
+                shops
             });
         }
 
+        // GET: api/shops/{id}
+        [HttpGet("shops/{id}")]
+        public async Task<IActionResult> GetShopDetail(int id)
+        {
+            var shop = await _db.Shops.Include(s => s.Products)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (shop == null)
+                return NotFound("Không tìm thấy shop");
+
+            return Ok(new
+            {
+                id = shop.Id,
+                name = shop.Name,
+                description = shop.Description,
+                products = shop.Products.Select(p => new
+                {
+                    id = p.Id,
+                    name = p.Name,
+                    price = p.Price
+                })
+            });
+        }
     }
 }

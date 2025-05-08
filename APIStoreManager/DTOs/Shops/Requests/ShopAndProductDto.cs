@@ -1,4 +1,4 @@
-﻿using APIStoreManager.DTOs.Products.Responses;
+﻿using APIStoreManager.DTOs.Products.Requests;
 
 namespace APIStoreManager.DTOs.Shops.Requests
 {

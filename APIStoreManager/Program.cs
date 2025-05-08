@@ -7,8 +7,29 @@ using System.Text;
 using APIStoreManager.Services;
 using Microsoft.OpenApi.Models;
 using System.Text.Json;
+using System.Security.Cryptography;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+
+builder.Services.AddSingleton<RSA>(_ => {
+    var privateKey = builder.Configuration["Jwt:RsaPrivateKey"];
+
+    privateKey = privateKey.Replace("\\n", "\n");
+
+    var rsa = RSA.Create();
+
+    try
+    {
+        rsa.ImportFromPem(privateKey.ToCharArray());
+        return rsa;
+    }
+    catch (Exception ex)
+    {
+        throw new Exception("Failed to load RSA key", ex);
+    }
+});
 
 
 // Add services
@@ -23,11 +44,12 @@ builder.Services.AddDbContext<StoreManagerContext>(options =>
 // Token service
 builder.Services.AddScoped<TokenService>();
 
+
 // JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
+        var rsa = builder.Services.BuildServiceProvider().GetRequiredService<RSA>();
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -36,8 +58,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(key)
+            IssuerSigningKey = new RsaSecurityKey(rsa),
+            ClockSkew = TimeSpan.Zero
         };
+
         options.Events = new JwtBearerEvents
         {
             OnChallenge = context =>
@@ -45,13 +69,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 context.HandleResponse();
                 context.Response.StatusCode = 401;
                 context.Response.ContentType = "application/json";
-                var result = JsonSerializer.Serialize(new { message = "Bạn cần đăng nhập để sử dụng chức năng này." });
+                var result = JsonSerializer.Serialize(new { message = "Phiên đăng nhập hết hạn hoặc không hợp lệ" });
                 return context.Response.WriteAsync(result);
             }
         };
     });
 // Authorize
-  builder.Services.AddSwaggerGen(options =>
+builder.Services.AddSwaggerGen(options =>
     {
 
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "APIStoreManager", Version = "v1" });

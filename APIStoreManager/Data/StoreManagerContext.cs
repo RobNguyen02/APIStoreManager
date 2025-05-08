@@ -32,6 +32,8 @@ public partial class StoreManagerContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Products__3214EC07BC1E9822");
 
+            entity.HasIndex(e => e.Name, "IX_Products_Name").IsUnique();
+
             entity.Property(e => e.Name).HasMaxLength(200);
 
             entity.HasOne(d => d.Shop).WithMany(p => p.Products)
@@ -42,6 +44,8 @@ public partial class StoreManagerContext : DbContext
         modelBuilder.Entity<Shop>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Shops__3214EC0734154046");
+
+            entity.HasIndex(e => e.Name, "IX_Shops_Name").IsUnique();
 
             entity.Property(e => e.Name).HasMaxLength(200);
 
@@ -54,6 +58,10 @@ public partial class StoreManagerContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07A47AA314");
 
+            entity.Property(e => e.Email).HasMaxLength(200);
+            entity.Property(e => e.NickName).HasMaxLength(200);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.RefreshTokenExpiryTime).HasColumnType("datetime");
             entity.Property(e => e.Username).HasMaxLength(100);
         });
 

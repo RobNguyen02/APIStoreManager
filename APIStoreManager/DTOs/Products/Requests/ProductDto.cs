@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace APIStoreManager.DTOs.Products.Responses
+namespace APIStoreManager.DTOs.Products.Requests
 {
     public class ProductDto
     {
@@ -10,7 +10,7 @@ namespace APIStoreManager.DTOs.Products.Responses
         public string Name { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Giá sản phẩm không hợp lệ")]
-        public double Price { get; set; }  
+        public double Price { get; set; }
 
         [StringLength(1000, ErrorMessage = "Mô tả không vượt quá 1000 ký tự")]
         public string Description { get; set; }

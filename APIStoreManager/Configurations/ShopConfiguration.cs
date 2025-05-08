@@ -16,6 +16,8 @@ public class ShopConfiguration : IEntityTypeConfiguration<Shop>
         builder.Property(s => s.Description)
                .HasColumnType("nvarchar(max)");
 
+        builder.HasIndex(s => s.Name).IsUnique();
+
         builder.HasMany(s => s.Products)
                .WithOne(p => p.Shop)
                .HasForeignKey(p => p.ShopId)

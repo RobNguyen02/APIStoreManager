@@ -19,9 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\Products\Requests\" />
-    <Folder Include="DTOs\Users\Requests\" />
-    <Folder Include="DTOs\Users\Responses\" />
+    <Folder Include="DTOs\Products\Responses\" />
+    <Folder Include="DTOs\Shops\Responses\" />
   </ItemGroup>
 	
 </Project>

@@ -5,8 +5,8 @@ using System.Security.Claims;
 using System;
 using APIStoreManager.Data;
 using Microsoft.EntityFrameworkCore;
-using APIStoreManager.DTOs.Products.Responses;
 using Microsoft.Data.SqlClient;
+using APIStoreManager.DTOs.Products.Requests;
 
 namespace APIStoreManager.Controllers
 {
@@ -21,7 +21,7 @@ namespace APIStoreManager.Controllers
         {
             _db = db;
         }
-        [HttpGet("MyProductsList/{shopId}")]
+        [HttpGet("{shopId}/MyProductsList")]
         [Authorize]
         public async Task<IActionResult> GetMyShopProducts(long shopId)
         {
@@ -40,8 +40,9 @@ namespace APIStoreManager.Controllers
             {
                 ProductId = p.Id,
                 ProductName = p.Name,
+                Price = p.Price,
                 Description = p.Description,
-                Price = p.Price
+
             }).ToList();
 
             return Ok(new
@@ -58,29 +59,48 @@ namespace APIStoreManager.Controllers
         [Authorize]
         public async Task<IActionResult> CreateProduct(long shopId, [FromBody] ProductDto dto)
         {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+
+            using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+                if (dto.Price <= 0)
+                    return BadRequest("Giá sản phẩm phải lớn hơn 0");
+                //
+                var shop = await _db.Shops
+                    .FromSqlInterpolated($"SELECT * FROM Shops WITH (UPDLOCK) WHERE Id = {shopId} AND OwnerId = {userId}")
+                    .FirstOrDefaultAsync();
 
-                var shop = await _db.Shops.FindAsync(shopId);
-                if (shop == null) return NotFound("Cửa hàng không tồn tại!");
-                if (shop.OwnerId != userId) return Forbid();
+                if (shop == null)
+                    return NotFound("Cửa hàng không tồn tại hoặc không thuộc quyền sở hữu!");
+
+                if (await _db.Products.AnyAsync(p => p.ShopId == shopId && p.Name == dto.Name))
+                {
+                    return Conflict(new
+                    {
+                        Message = $"Tên sản phẩm '{dto.Name}' đã tồn tại trong cửa hàng",
+                        ErrorCode = "PRODUCT_NAME_DUPLICATE"
+                    });
+                }
 
                 var product = new Product
                 {
-                    Name = dto.Name,
+                    Name = dto.Name.Trim(),
                     Price = dto.Price,
-                    Description = dto.Description,
+                    Description = dto.Description?.Trim(),
                     ShopId = shopId
                 };
 
                 _db.Products.Add(product);
                 await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+
                 return Ok(product);
             }
             catch (DbUpdateException ex) when (IsDuplicateNameError(ex))
             {
-                
+                await transaction.RollbackAsync();
                 return Conflict(new
                 {
                     Message = $"Tên sản phẩm '{dto.Name}' đã tồn tại trong hệ thống",
@@ -89,6 +109,7 @@ namespace APIStoreManager.Controllers
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 return BadRequest(new { Message = "Lỗi không xác định", Detail = ex.Message });
             }
         }
