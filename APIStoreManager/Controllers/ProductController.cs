@@ -7,6 +7,7 @@ using APIStoreManager.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using APIStoreManager.DTOs.Products.Requests;
+using APIStoreManager.DTOs.Products.Responses;
 
 namespace APIStoreManager.Controllers
 {
@@ -21,42 +22,59 @@ namespace APIStoreManager.Controllers
         {
             _db = db;
         }
-        [HttpGet("{shopId}/MyProductsList")]
-        [Authorize]
-        public async Task<IActionResult> GetMyShopProducts(long shopId)
-        {
-            var userId = long.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
 
+
+        [HttpGet("{shopId}/Products")]
+        [Authorize]
+        public async Task<IActionResult> GetPublicProductsByShop(long shopId)
+        {
             var shop = await _db.Shops
                 .Include(s => s.Products)
-                .FirstOrDefaultAsync(s => s.Id == shopId && s.OwnerId == userId);
+                .FirstOrDefaultAsync(s => s.Id == shopId);
 
             if (shop == null)
-            {
-                return NotFound("Cửa hàng không tồn tại hoặc không thuộc quyền sở hữu của bạn.");
-            }
+                return NotFound("Không tìm thấy cửa hàng.");
 
             var products = shop.Products.Select(p => new
             {
-                ProductId = p.Id,
-                ProductName = p.Name,
-                Price = p.Price,
-                Description = p.Description,
-
+                productId = p.Id,
+                productName = p.Name,
+                price = p.Price,
+                description = p.Description
             }).ToList();
 
             return Ok(new
             {
-                ShopId = shop.Id,
-                ShopName = shop.Name,
-                ShopDescription = shop.Description,
-                Products = products
+                shopId = shop.Id,
+                shopName = shop.Name,
+                shopDescription = shop.Description,
+                products = products
             });
         }
 
+        [HttpGet("All")]
+        [Authorize]
+        public async Task<IActionResult> GetAllProducts()
+        {
+            var products = await _db.Products
+                .Include(p => p.Shop)
+                .Select(p => new ProductResponseDto
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Price = p.Price,
+                    Description = p.Description,
+                    ShopId = p.ShopId
+                })
+                .ToListAsync();
+
+            return Ok(products);
+        }
+
+
 
         [HttpPost("{shopId}/CreateProduct")]
-        [Authorize]
+        [Authorize(Policy = "OwnerOnly")]
         public async Task<IActionResult> CreateProduct(long shopId, [FromBody] ProductDto dto)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
@@ -96,7 +114,14 @@ namespace APIStoreManager.Controllers
                 await transaction.CommitAsync();
 
 
-                return Ok(product);
+                return Ok(new ProductResponseDto
+                {
+                    Id = product.Id,
+                    Name = product.Name,
+                    Price = product.Price,
+                    Description = product.Description,
+                    ShopId = product.ShopId
+                });
             }
             catch (DbUpdateException ex) when (IsDuplicateNameError(ex))
             {
@@ -132,12 +157,16 @@ namespace APIStoreManager.Controllers
             product.Price = updatedProduct.Price;
 
             await _db.SaveChangesAsync();
-            return Ok(new
+            return Ok(new ProductResponseDto
             {
-                message = "Cập nhật Sản phẩm thành công!",
-                data = product
+                Id = product.Id,
+                Name = product.Name,
+                Price = product.Price,
+                Description = product.Description,
+                ShopId = product.ShopId
             });
         }
+    
 
         
         [HttpDelete("{productId}/DeleteProduct")]

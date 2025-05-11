@@ -1,6 +1,7 @@
 ﻿using APIStoreManager.Data;
 using APIStoreManager.Models;
 using APIStoreManager.Services;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -42,13 +43,13 @@ namespace APIStoreManager.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(string username, string password)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request) 
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == username);
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == request.Username); 
             if (user == null)
                 return Unauthorized("Đăng nhập thất bại, kiểm tra lại username hoặc password!");
 
-            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             if (!isPasswordValid)
                 return Unauthorized("Mật khẩu không hợp lệ!");
 
@@ -84,7 +85,6 @@ namespace APIStoreManager.Controllers
             var newAccessToken = _tokenService.CreateToken(user);
             var newRefreshToken = _tokenService.GenerateRefreshToken();
 
-            // new refresh token
             user.RefreshToken = newRefreshToken;
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
             await _db.SaveChangesAsync();
@@ -97,8 +97,12 @@ namespace APIStoreManager.Controllers
             });
         }
     }
-      
 
+    public class LoginRequest
+    {
+        public string Username { get; set; }
+        public string Password { get; set; }
+    }
     public class TokenRequest
     {
         public string AccessToken { get; set; }

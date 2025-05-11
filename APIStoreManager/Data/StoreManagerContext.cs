@@ -30,10 +30,9 @@ public partial class StoreManagerContext : DbContext
     {
         modelBuilder.Entity<Product>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Products__3214EC07BC1E9822");
+            entity.HasKey(e => new { e.ShopId, e.Id });
 
-            entity.HasIndex(e => e.Name, "IX_Products_Name").IsUnique();
-
+            entity.Property(e => e.Id).ValueGeneratedOnAdd();
             entity.Property(e => e.Name).HasMaxLength(200);
 
             entity.HasOne(d => d.Shop).WithMany(p => p.Products)

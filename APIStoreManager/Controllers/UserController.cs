@@ -75,8 +75,5 @@ namespace APIStoreManager.Controllers
 
             return Ok("Đổi mật khẩu thành công");
         }
-
-
-     
     }
 }

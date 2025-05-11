@@ -61,11 +61,14 @@ namespace APIStoreManager.Controllers
 
 
         [HttpPut("{shopId}/updateshop")]
-        [Authorize]
+        [Authorize(Policy = "OwnerOnly")]
         public async Task<IActionResult> UpdateShop(int shopId, [FromBody] ShopDto updatedShop)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-
+            if (string.IsNullOrWhiteSpace(updatedShop.Name))
+            {
+                return BadRequest("Tên shop không được để trống!");
+            }
             using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
@@ -102,7 +105,7 @@ namespace APIStoreManager.Controllers
 
 
         [HttpDelete("{shopId}/deleteshop")]
-        [Authorize]
+        [Authorize(Policy = "OwnerOnly")]
         public async Task<IActionResult> DeleteShop(int shopId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);

@@ -8,6 +8,9 @@ using APIStoreManager.Services;
 using Microsoft.OpenApi.Models;
 using System.Text.Json;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Authorization;
+using APIStoreManager.Authorization;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -106,8 +109,42 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// auth role handle
+builder.Services.AddHttpContextAccessor(); 
+
+builder.Services.AddScoped<IAuthorizationHandler, OwnerHandler>();
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("OwnerOnly", policy =>
+        policy.Requirements.Add(new OwnerRequirement()));
+});
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+
+//CORS
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowAll", policy => {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+
+
+
 
 var app = builder.Build();
+app.UseCors("AllowAll");
 
 app.UseSwagger();
 app.UseSwaggerUI();

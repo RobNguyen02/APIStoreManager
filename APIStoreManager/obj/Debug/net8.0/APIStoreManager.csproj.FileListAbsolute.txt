@@ -169,3 +169,5 @@ C:\Users\nguye\source\repos\APIStoreManager\APIStoreManager\obj\Debug\net8.0\ref
 C:\Users\nguye\source\repos\APIStoreManager\APIStoreManager\obj\Debug\net8.0\APIStoreManager.pdb
 C:\Users\nguye\source\repos\APIStoreManager\APIStoreManager\obj\Debug\net8.0\APIStoreManager.genruntimeconfig.cache
 C:\Users\nguye\source\repos\APIStoreManager\APIStoreManager\obj\Debug\net8.0\ref\APIStoreManager.dll
+C:\Users\nguye\source\repos\APIStoreManager\APIStoreManager\bin\Debug\net8.0\fe-store\package-lock.json
+C:\Users\nguye\source\repos\APIStoreManager\APIStoreManager\bin\Debug\net8.0\fe-store\package.json
