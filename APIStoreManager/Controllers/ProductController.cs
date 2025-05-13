@@ -70,7 +70,30 @@ namespace APIStoreManager.Controllers
 
             return Ok(products);
         }
+        [HttpGet("{productId}/product-details/")]
+        [Authorize]
+        public async Task<IActionResult> GetProductById(long productId)
+        {
+            var product = await _db.Products
+                .Include(p => p.Shop)
+                .FirstOrDefaultAsync(p => p.Id == productId);
 
+            if (product == null)
+            {
+                return NotFound("Không tìm thấy sản phẩm.");
+            }
+
+            var productDto = new ProductResponseDto
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                ShopId = product.ShopId
+            };
+
+            return Ok(productDto);
+        }
 
 
         [HttpPost("{shopId}/CreateProduct")]

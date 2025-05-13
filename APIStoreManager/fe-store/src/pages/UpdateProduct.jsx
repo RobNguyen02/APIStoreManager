@@ -21,7 +21,7 @@ const UpdateProduct = () => {
         const fetchProduct = async () => {
             try {
                 const res = await axios.get(
-                    `http://localhost:5084/api/product/product-details/${productId}`,
+                    `http://localhost:5084/api/product/${productId}/product-details`,
                     {
                         headers: { Authorization: `Bearer ${token}` }
                     }
